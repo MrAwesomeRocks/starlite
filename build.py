@@ -151,9 +151,7 @@ class ExtensionBuilder(build_ext):  # type: ignore[misc]
 
 def build(setup_kwargs: dict[str, Any]) -> dict[str, Any]:
     """Poetry entrypoint."""
-    cmake_modules = [
-        CMakeExtension("starlite._extensions.radix_tree")
-    ]
+    cmake_modules = [CMakeExtension("starlite._extensions.radix_tree")]
     ext_modules = cmake_modules
 
     setup_kwargs.update(
