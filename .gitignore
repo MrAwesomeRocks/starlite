@@ -18,3 +18,7 @@ site/
 .DS_Store
 .python-version
 coverage.*
+
+# build
+setup.py
+build/

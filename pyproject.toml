@@ -3,20 +3,31 @@ name = "starlite"
 version = "1.5.2"
 description = "Light-weight and flexible ASGI API Framework"
 authors = ["Na'aman Hirschfeld <nhirschfeld@gmail.com>"]
-maintainers = ["Na'aman Hirschfeld <nhirschfeld@gmail.com>", "Peter Schutt <peter.github@proton.me>"]
+maintainers = [
+    "Na'aman Hirschfeld <nhirschfeld@gmail.com>",
+    "Peter Schutt <peter.github@proton.me>",
+]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/starlite-api/starlite"
 repository = "https://github.com/starlite-api/starlite"
 documentation = "https://starlite-api.github.io/starlite"
-keywords = ["api", "rest", "http", "asgi", "pydantic", "starlette", "fastapi", "framework"]
+keywords = [
+    "api",
+    "rest",
+    "http",
+    "asgi",
+    "pydantic",
+    "starlette",
+    "fastapi",
+    "framework",
+]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Web Environment",
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -27,12 +38,10 @@ classifiers = [
     "Typing :: Typed",
 ]
 include = ["CHANGELOG.md"]
-packages = [
-    { include = "starlite" },
-]
+packages = [{ include = "starlite" }]
 
 [tool.poetry.dependencies]
-python = ">=3.7,<4.0"
+python = ">=3.8,<4.0"
 openapi-schema-pydantic = "*"
 orjson = "*"
 pydantic = "*"
@@ -50,19 +59,32 @@ pytest = "*"
 pytest-asyncio = "*"
 pytest-cov = "*"
 uvicorn = "*"
-sqlalchemy = {extras = ["mypy"], version = "*"}
+sqlalchemy = { extras = ["mypy"], version = "*" }
 Jinja2 = "*"
 Mako = "*"
 freezegun = "*"
 pytest-mock = "*"
 tox = "*"
 requests = "*"
+pylint = "^2.14.4"
+nanobind = "^0.0.5"
 
 [tool.poetry.extras]
 testing = ["requests"]
 
+[tool.poetry.build]
+script = "build.py"
+# TODO build the better way (https://github.com/sdispater/pendulum/commit/a2267c02437d6c1ea613a55dbfb7085d376e997b#diff-b70bfb027a8ef3ec4ab07a53a3b8ba83e63334ba3ce5ca6d9d773900ed452e5e)
+generate-setup-file = true
+
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = [
+    "poetry-core>=1.0.0",
+    "wheel",
+    "cmake>=3.18",
+    "nanobind>=0.0.3",
+    "ninja",
+]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]
