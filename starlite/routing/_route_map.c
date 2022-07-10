@@ -15,7 +15,7 @@ typedef struct RouteMap {
  */
 static PyTypeObject RouteMapType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "starlie._extensions.route_map.RouteMap",
+    .tp_name = "starlite.routing._route_map.RouteMap",
     .tp_doc = PyDoc_STR("Native Starlite RouteMap"),
     .tp_basicsize = sizeof(RouteMap),
     .tp_itemsize = 0,
