@@ -63,6 +63,7 @@ tox = "*"
 requests = "*"
 pylint = "^2.14.4"
 types-setuptools = "^62.6.0"
+flake8 = "^4.0.1"
 
 [tool.poetry.extras]
 testing = ["requests"]

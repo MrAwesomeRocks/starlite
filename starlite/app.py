@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Set, Union, cast
+from typing import Dict, List, Optional, Union, cast
 
 from openapi_schema_pydantic.util import construct_open_api_with_schema_class
 from openapi_schema_pydantic.v3.v3_1_0.open_api import OpenAPI
@@ -22,7 +22,6 @@ from starlite.config import (
     TemplateConfig,
 )
 from starlite.datastructures import State
-from starlite.exceptions import ImproperlyConfiguredException
 from starlite.handlers.asgi import ASGIRouteHandler, asgi
 from starlite.handlers.base import BaseRouteHandler
 from starlite.handlers.http import HTTPRouteHandler
@@ -34,6 +33,7 @@ from starlite.provide import Provide
 from starlite.response import Response
 from starlite.router import Router
 from starlite.routes import ASGIRoute, BaseRoute, HTTPRoute, WebSocketRoute
+from starlite.routing import RouteMap
 from starlite.signature import SignatureModelFactory
 from starlite.types import (
     AfterRequestHandler,
@@ -62,11 +62,9 @@ class Starlite(Router):
         "debug",
         "gzip_config",
         "openapi_schema",
-        "plain_routes",
         "plugins",
         "route_map",
         "state",
-        "static_paths",
         "template_engine",
     )
 
@@ -100,12 +98,10 @@ class Starlite(Router):
         self.cors_config = cors_config
         self.debug = debug
         self.gzip_config = gzip_config
-        self.plain_routes: Set[str] = set()
         self.plugins = plugins or []
-        self.route_map: Dict[str, Any] = {}
+        self.route_map = RouteMap()
         self.routes: List[BaseRoute] = []
         self.state = State()
-        self.static_paths = set()
 
         super().__init__(
             dependencies=dependencies,
@@ -129,7 +125,7 @@ class Starlite(Router):
         if static_files_config:
             for config in static_files_config if isinstance(static_files_config, list) else [static_files_config]:
                 path = normalize_path(config.path)
-                self.static_paths.add(path)
+                self.route_map.add_static_path(path)
                 static_files = StaticFiles(html=config.html_mode, check_dir=False)
                 static_files.all_directories = config.directories  # type: ignore
                 self.register(asgi(path=path)(static_files))
@@ -170,56 +166,6 @@ class Starlite(Router):
         """
 
         return ExceptionHandlerMiddleware(app=app, exception_handlers=exception_handlers, debug=self.debug)
-
-    def construct_route_map(self) -> None:  # noqa: C901 # pylint: disable=R0912
-        """
-        Create a map of the app's routes. This map is used in the asgi router to route requests.
-
-        """
-        seen_param_paths = set()
-        if "_components" not in self.route_map:
-            self.route_map["_components"] = set()
-        for route in self.routes:
-            path = route.path
-            if route.path_parameters or path in self.static_paths:
-                for param_definition in route.path_parameters:
-                    path = path.replace(param_definition["full"], "")
-                path = path.replace("{}", "*")
-                if path in seen_param_paths:
-                    raise ImproperlyConfiguredException("Should not use routes with conflicting path parameters")
-                seen_param_paths.add(path)
-                cur = self.route_map
-                components = ["/", *[component for component in path.split("/") if component]]
-                for component in components:
-                    components_set = cast(Set[str], cur["_components"])
-                    components_set.add(component)
-                    if component not in cur:
-                        cur[component] = {"_components": set()}
-                    cur = cast(Dict[str, Any], cur[component])
-            else:
-                if path not in self.route_map:
-                    self.route_map[path] = {"_components": set()}
-                self.plain_routes.add(path)
-                cur = self.route_map[path]
-            if "_path_parameters" not in cur:
-                cur["_path_parameters"] = route.path_parameters
-            if "_asgi_handlers" not in cur:
-                cur["_asgi_handlers"] = {}
-            if "_is_asgi" not in cur:
-                cur["_is_asgi"] = False
-            if path in self.static_paths:
-                cur["static_path"] = path
-                cur["_is_asgi"] = True
-            asgi_handlers = cast(Dict[str, ASGIApp], cur["_asgi_handlers"])
-            if isinstance(route, HTTPRoute):
-                for method, handler_mapping in route.route_handler_map.items():
-                    handler, _ = handler_mapping
-                    asgi_handlers[method] = self.build_route_middleware_stack(route, handler)
-            elif isinstance(route, WebSocketRoute):
-                asgi_handlers["websocket"] = self.build_route_middleware_stack(route, route.route_handler)
-            elif isinstance(route, ASGIRoute):
-                asgi_handlers["asgi"] = self.build_route_middleware_stack(route, route.route_handler)
-                cur["_is_asgi"] = True
 
     def build_route_middleware_stack(
         self,
@@ -268,7 +214,7 @@ class Starlite(Router):
                 route.create_handler_map()
             elif isinstance(route, WebSocketRoute):
                 route.handler_parameter_model = route.create_handler_kwargs_model(route.route_handler)
-        self.construct_route_map()
+        self.route_map.add_routes(routes, self)
 
     def create_handler_signature_model(self, route_handler: BaseRouteHandler) -> None:
         """
