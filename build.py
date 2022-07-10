@@ -17,7 +17,7 @@ if with_extensions == "0" or hasattr(sys, "pypy_version_info"):
 
 extensions = (
     [
-        Extension("starlite._extensions._route_map", ["starlite/_extensions/_route_map.c"]),
+        Extension("starlite.routing._route_map", ["starlite/routing/_route_map.c"]),
     ]
     if build_extensions
     else []
