@@ -14,3 +14,4 @@ AllowShortBlocksOnASingleLine: Empty
 AlwaysBreakAfterReturnType: TopLevelDefinitions
 SortIncludes: true
 AllowShortFunctionsOnASingleLine: Inline
+PointerAlignment: Left

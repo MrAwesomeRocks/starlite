@@ -16,17 +16,17 @@
 struct bucket {
     // `next` must be the first struct element.
     // changing the order will break multiple functions
-    struct bucket *next;
+    struct bucket* next;
 
     // key, key size, key hash, and associated value
-    void *key;
+    void* key;
     size_t ksize;
     uint32_t hash;
     uintptr_t value;
 };
 
 struct hashmap {
-    struct bucket *buckets;
+    struct bucket* buckets;
     int capacity;
     int count;
 
@@ -36,15 +36,15 @@ struct hashmap {
 #endif
 
     // a linked list of all valid entries, in order
-    struct bucket *first;
+    struct bucket* first;
     // lets us know where to add the next element
-    struct bucket *last;
+    struct bucket* last;
 };
 
-hashmap *
+hashmap*
 hashmap_create(void)
 {
-    hashmap *m = malloc(sizeof(hashmap));
+    hashmap* m = malloc(sizeof(hashmap));
     m->capacity = HASHMAP_DEFAULT_CAPACITY;
     m->count = 0;
 
@@ -59,24 +59,24 @@ hashmap_create(void)
     // m->first will be treated as the "next" pointer in an imaginary bucket.
     // when the first item is added, m->first will be set to the correct
     // address.
-    m->last = (struct bucket *)&m->first;
+    m->last = (struct bucket*)&m->first;
     return m;
 }
 
 void
-hashmap_free(hashmap *m)
+hashmap_free(hashmap* m)
 {
     free(m->buckets);
     free(m);
 }
 
 // puts an old bucket into a resized hashmap
-static struct bucket *
-resize_entry(hashmap *m, struct bucket *old_entry)
+static struct bucket*
+resize_entry(hashmap* m, struct bucket* old_entry)
 {
     uint32_t index = old_entry->hash % m->capacity;
     for (;;) {
-        struct bucket *entry = &m->buckets[index];
+        struct bucket* entry = &m->buckets[index];
 
         if (entry->key == NULL) {
             *entry = *old_entry; // copy data from old entry
@@ -88,16 +88,16 @@ resize_entry(hashmap *m, struct bucket *old_entry)
 }
 
 static void
-hashmap_resize(hashmap *m)
+hashmap_resize(hashmap* m)
 {
-    struct bucket *old_buckets = m->buckets;
+    struct bucket* old_buckets = m->buckets;
 
     m->capacity *= HASHMAP_RESIZE_FACTOR;
     // initializes all bucket fields to null
     m->buckets = calloc(m->capacity, sizeof(struct bucket));
 
     // same trick; avoids branching
-    m->last = (struct bucket *)&m->first;
+    m->last = (struct bucket*)&m->first;
 
 #ifdef __HASHMAP_REMOVABLE
     m->count -= m->tombstone_count;
@@ -108,7 +108,7 @@ hashmap_resize(hashmap *m)
     do {
 #ifdef __HASHMAP_REMOVABLE
         // skip entry if it's a "tombstone"
-        struct bucket *current = m->last->next;
+        struct bucket* current = m->last->next;
         if (current->key == NULL) {
             m->last->next = current->next;
             // skip to loop condition
@@ -127,7 +127,7 @@ hashmap_resize(hashmap *m)
 
 // FNV-1a hash function
 static inline uint32_t
-hash_data(const unsigned char *data, size_t size)
+hash_data(const unsigned char* data, size_t size)
 {
     size_t nblocks = size / 8;
     uint64_t hash = HASHMAP_HASH_INIT;
@@ -165,13 +165,13 @@ hash_data(const unsigned char *data, size_t size)
     return hash ^ hash >> 32;
 }
 
-static struct bucket *
-find_entry(hashmap *m, void *key, size_t ksize, uint32_t hash)
+static struct bucket*
+find_entry(hashmap* m, void* key, size_t ksize, uint32_t hash)
 {
     uint32_t index = hash % m->capacity;
 
     for (;;) {
-        struct bucket *entry = &m->buckets[index];
+        struct bucket* entry = &m->buckets[index];
 
 #ifdef __HASHMAP_REMOVABLE
 
@@ -206,13 +206,13 @@ find_entry(hashmap *m, void *key, size_t ksize, uint32_t hash)
 }
 
 void
-hashmap_set(hashmap *m, void *key, size_t ksize, uintptr_t val)
+hashmap_set(hashmap* m, void* key, size_t ksize, uintptr_t val)
 {
     if (m->count + 1 > HASHMAP_MAX_LOAD * m->capacity)
         hashmap_resize(m);
 
     uint32_t hash = hash_data(key, ksize);
-    struct bucket *entry = find_entry(m, key, ksize, hash);
+    struct bucket* entry = find_entry(m, key, ksize, hash);
     if (entry->key == NULL) {
         m->last->next = entry;
         m->last = entry;
@@ -228,13 +228,13 @@ hashmap_set(hashmap *m, void *key, size_t ksize, uintptr_t val)
 }
 
 bool
-hashmap_get_set(hashmap *m, void *key, size_t ksize, uintptr_t *out_in)
+hashmap_get_set(hashmap* m, void* key, size_t ksize, uintptr_t* out_in)
 {
     if (m->count + 1 > HASHMAP_MAX_LOAD * m->capacity)
         hashmap_resize(m);
 
     uint32_t hash = hash_data(key, ksize);
-    struct bucket *entry = find_entry(m, key, ksize, hash);
+    struct bucket* entry = find_entry(m, key, ksize, hash);
     if (entry->key == NULL) {
         m->last->next = entry;
         m->last = entry;
@@ -254,14 +254,14 @@ hashmap_get_set(hashmap *m, void *key, size_t ksize, uintptr_t *out_in)
 }
 
 void
-hashmap_set_free(hashmap *m, void *key, size_t ksize, uintptr_t val,
-                 hashmap_callback c, void *usr)
+hashmap_set_free(hashmap* m, void* key, size_t ksize, uintptr_t val,
+                 hashmap_callback c, void* usr)
 {
     if (m->count + 1 > HASHMAP_MAX_LOAD * m->capacity)
         hashmap_resize(m);
 
     uint32_t hash = hash_data(key, ksize);
-    struct bucket *entry = find_entry(m, key, ksize, hash);
+    struct bucket* entry = find_entry(m, key, ksize, hash);
     if (entry->key == NULL) {
         m->last->next = entry;
         m->last = entry;
@@ -287,10 +287,10 @@ hashmap_set_free(hashmap *m, void *key, size_t ksize, uintptr_t val,
 }
 
 bool
-hashmap_get(hashmap *m, void *key, size_t ksize, uintptr_t *out_val)
+hashmap_get(hashmap* m, void* key, size_t ksize, uintptr_t* out_val)
 {
     uint32_t hash = hash_data(key, ksize);
-    struct bucket *entry = find_entry(m, key, ksize, hash);
+    struct bucket* entry = find_entry(m, key, ksize, hash);
 
     // if there is no match, output val will just be NULL
     *out_val = entry->value;
@@ -302,10 +302,10 @@ hashmap_get(hashmap *m, void *key, size_t ksize, uintptr_t *out_val)
 // doesn't "remove" the element per se, but it will be ignored.
 // the element will eventually be removed when the map is resized.
 void
-hashmap_remove(hashmap *m, void *key, size_t ksize)
+hashmap_remove(hashmap* m, void* key, size_t ksize)
 {
     uint32_t hash = hash_data(key, ksize);
-    struct bucket *entry = find_entry(m, key, ksize, hash);
+    struct bucket* entry = find_entry(m, key, ksize, hash);
 
     if (entry->key != NULL) {
 
@@ -320,11 +320,11 @@ hashmap_remove(hashmap *m, void *key, size_t ksize)
 }
 
 void
-hashmap_remove_free(hashmap *m, void *key, size_t ksize, hashmap_callback c,
-                    void *usr)
+hashmap_remove_free(hashmap* m, void* key, size_t ksize, hashmap_callback c,
+                    void* usr)
 {
     uint32_t hash = hash_data(key, ksize);
-    struct bucket *entry = find_entry(m, key, ksize, hash);
+    struct bucket* entry = find_entry(m, key, ksize, hash);
 
     if (entry->key != NULL) {
         c(entry->key, entry->ksize, entry->value, usr);
@@ -341,7 +341,7 @@ hashmap_remove_free(hashmap *m, void *key, size_t ksize, hashmap_callback c,
 #endif
 
 int
-hashmap_size(hashmap *m)
+hashmap_size(hashmap* m)
 {
 
 #ifdef __HASHMAP_REMOVABLE
@@ -352,11 +352,11 @@ hashmap_size(hashmap *m)
 }
 
 void
-hashmap_iterate(hashmap *m, hashmap_callback c, void *user_ptr)
+hashmap_iterate(hashmap* m, hashmap_callback c, void* user_ptr)
 {
     // loop through the linked list of valid entries
     // this way we can skip over empty buckets
-    struct bucket *current = m->first;
+    struct bucket* current = m->first;
 
     int co = 0;
 

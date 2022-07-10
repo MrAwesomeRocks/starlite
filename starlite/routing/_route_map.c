@@ -35,7 +35,7 @@ static PyModuleDef module_def = {
 PyMODINIT_FUNC
 PyInit__route_map(void)
 {
-    PyObject *m;
+    PyObject* m;
     if (PyType_Ready(&RouteMapType) < 0)
         return NULL;
 
@@ -44,7 +44,7 @@ PyInit__route_map(void)
         return NULL;
 
     Py_INCREF(&RouteMapType);
-    if (PyModule_AddObject(m, "RouteMap", (PyObject *)&RouteMapType) < 0) {
+    if (PyModule_AddObject(m, "RouteMap", (PyObject*)&RouteMapType) < 0) {
         Py_DECREF(&RouteMapType);
         Py_DECREF(m);
         return NULL;
