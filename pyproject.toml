@@ -16,7 +16,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -26,13 +25,18 @@ classifiers = [
     "Topic :: Software Development",
     "Typing :: Typed",
 ]
-include = ["CHANGELOG.md"]
+include = [
+    {path = "CHANGELOG.md"},
+    # C extensions must be included in the wheel distributions
+    {path = "starlite/_extensions/route_map/*.so", format = "wheel"},
+    {path = "pendulum/_extensions/route_map/*.pyd", format = "wheel"},
+]
 packages = [
     { include = "starlite" },
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.7,<4.0"
+python = ">=3.8,<4.0"
 openapi-schema-pydantic = "*"
 orjson = "*"
 pydantic = "*"
@@ -57,9 +61,15 @@ freezegun = "*"
 pytest-mock = "*"
 tox = "*"
 requests = "*"
+pylint = "^2.14.4"
+types-setuptools = "^62.6.0"
 
 [tool.poetry.extras]
 testing = ["requests"]
+
+[tool.poetry.build]
+script = "build.py"
+generate-setup-file = false
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
