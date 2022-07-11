@@ -29,6 +29,9 @@ typedef struct RouteMap_Tree {
     RouteMap_LeafData* data;
 } RouteMap_Tree;
 
+/*
+ * Create a new trie.
+ */
 static RouteMap_Tree*
 RouteMap_Tree_create()
 {
@@ -56,6 +59,8 @@ typedef struct RouteMap {
 
 /*
  * RouteMap.__new__(self, *args, **kwargs);
+ *
+ * Initializes (allocates) the fields in the RouteMap object.
  */
 static PyObject*
 RouteMap_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
@@ -77,6 +82,8 @@ RouteMap_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
 
 /*
  * RouteMap.__del__();
+ *
+ * Frees memory in the RouteMap object.
  */
 static void
 RouteMap_dealloc(RouteMap* self)
@@ -102,6 +109,9 @@ static PyTypeObject RouteMapType = {
 
 /* ------------------------ Module Definition ------------------------------ */
 
+/*
+ * Defines the contents of the module.
+ */
 static PyModuleDef module_def = {
     PyModuleDef_HEAD_INIT,
     .m_name = "_route_map",
@@ -109,6 +119,11 @@ static PyModuleDef module_def = {
     .m_size = -1,
 };
 
+/*
+ * Module initializer
+ *
+ * Allocates, creates, and adds types to the module.
+ */
 PyMODINIT_FUNC
 PyInit__route_map(void)
 {
