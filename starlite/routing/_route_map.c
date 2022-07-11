@@ -9,7 +9,7 @@
 
 #define HASHSET_VALUE 0
 
-/* -------------------------- Custom Types --------------------------------- */
+/* -------------------------- Helper Types --------------------------------- */
 
 /*
  * Data for the leaves (routes) of the trie.
@@ -20,6 +20,23 @@ typedef struct RouteMap_LeafData {
     bool is_asgi;
     char* static_path;
 } RouteMap_LeafData;
+
+static void
+RouteMap_LeafData_free(RouteMap_LeafData* data)
+{
+    if (data == NULL)
+        return;
+
+    /* Decrement refcount for python objects. */
+    Py_XDECREF(data->path_parameters);
+    Py_XDECREF(data->asgi_handlers);
+
+    /* Free string */
+    PyMem_Free(data->static_path);
+
+    /* Free the data */
+    PyMem_Free(data);
+}
 
 /*
  * The actual trie.
@@ -37,13 +54,36 @@ RouteMap_Tree_create()
 {
     RouteMap_Tree* tree;
 
-    tree = (RouteMap_Tree*)malloc(sizeof(RouteMap_Tree));
+    tree = (RouteMap_Tree*)PyMem_Malloc(sizeof(RouteMap_Tree));
+    if (tree == NULL)
+        return (RouteMap_Tree*)PyErr_NoMemory(); /* Always returns NULL */
 
     tree->children = hashmap_create();
     tree->data = NULL;
 
     return tree;
 }
+
+/*
+ * Free the memory allocated to a trie.
+ */
+static void
+RouteMap_Tree_free(RouteMap_Tree* tree)
+{
+    if (tree == NULL)
+        return;
+
+    /* Free children */
+    // TODO: Recursively decend down trie
+
+    /* Free data */
+    PyMem_Free(tree->data);
+
+    /* Free the tree itself. */
+    PyMem_Free(tree);
+}
+
+/* -------------------------- Custom Types --------------------------------- */
 
 /*
  * class RouteMap():
@@ -88,7 +128,16 @@ RouteMap_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
 static void
 RouteMap_dealloc(RouteMap* self)
 {
-    // TODO: Recursively decend down trie
+    /* Free keys in static_paths hashset */
+    // TODO Free every key in `static_paths`
+
+    /* Free keys and leaves in `plain_routes` */
+    // TODO Free every key and leaf in `plain_routes`
+
+    /* Free trie. */
+    RouteMap_Tree_free(self->tree);
+
+    /* Free type object. */
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 /*
