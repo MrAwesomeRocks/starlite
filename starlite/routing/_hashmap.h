@@ -76,4 +76,33 @@ void hashmap_iterate(hashmap* map, hashmap_callback c, void* usr);
 // `0` is an empty bucket, `1` is occupied, and `x` is removed.
 // void bucket_dump(hashmap *m);
 
+/* ----------------------------- Hashset ----------------------------------- */
+// Allows for using the Hashmap as a set
+
+typedef hashmap hashset;
+
+inline hashset*
+hashset_create()
+{
+    return hashmap_create();
+}
+
+inline void
+hashset_free(hashset* set)
+{
+    hashmap_free(set);
+}
+
+inline void
+hashset_add(hashset* set, void* key, size_t ksize)
+{
+    hashmap_set(set, key, ksize, 0);
+}
+
+inline void hashset_contains(hashset* set, void* key, size_t ksize)
+{
+    uintptr_t temp;
+    return hashmap_get(set, key, ksize, &temp);
+}
+
 #endif // _hashmap_h
