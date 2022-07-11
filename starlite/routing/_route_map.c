@@ -1,13 +1,38 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <structmember.h>
 
 #include <stdbool.h>
+#include <string.h>
 
 #include "_hashmap.h"
 
 /* --------------------------- Definitions --------------------------------- */
 
 #define HASHSET_VALUE 0
+
+/* -------------------------- Helper Funcs --------------------------------- */
+
+/*
+ * Allocate and copy string.
+ *
+ * Must be freed with PyMem_Free!
+ */
+static char*
+strdup_p(const char* src)
+{
+    char* dest;
+
+    dest = PyMem_Malloc(strlen(src) * sizeof(char));
+    if (dest == NULL)
+        return (char*)PyErr_NoMemory(); /* Always returns NULL */
+
+    /* Copy string */
+    while ((*dest++ = *src++) != '\0')
+        ;
+
+    return dest;
+}
 
 /* -------------------------- Helper Types --------------------------------- */
 
@@ -119,6 +144,108 @@ RouteMap_new(PyTypeObject* type, PyObject* args, PyObject* kwds)
     return (PyObject*)self;
 }
 
+/*
+ * RouteMap._add_node(self, route: BaseRoute, app: "Starlite") -> _RouteMapTree;
+ *
+ * Adds a new route path (e.g. '/foo/bar/{param:int}') into the route_map tree.
+ *
+ * Inserts non-parameter paths ('plain routes') off the tree's root node.
+ * For paths containing parameters, splits the path on '/' and nests each path
+ * segment under the previous segment's node (see prefix tree / trie).
+ */
+static RouteMap_Tree*
+RouteMap__add_node(RouteMap* self, PyObject* route, PyObject* app)
+{
+    // Read fields
+    PyObject* py_path = PyObject_GetAttrString(route, "path");
+    PyObject* path_params = PyObject_GetAttrString(route, "path_parameters");
+
+    // Check fields
+    if (py_path == NULL || !PyUnicode_Check(py_path) ||       // Valid string
+        path_params == NULL || !PySequence_Check(path_params) // Valid list
+    ) {
+        PyErr_SetString(PyExc_TypeError, "Invalid route.");
+        return NULL;
+    }
+
+    // Get path
+    Py_ssize_t path_size;
+    char* path = strdup_p(PyUnicode_AsUTF8AndSize(py_path, &path_size));
+
+    /* Get the trie node for the path.
+     *
+     * First, check if its a plain path.
+     */
+    RouteMap_Tree* cur_node;
+    if (PySequence_Length(path_params) != 0 ||
+        hashset_contains(self->static_paths, path, path_size)) {
+        /* Replace path params with "*" */
+        // TODO
+
+        /* Iterate down tree with components. */
+        cur_node = self->tree;
+        // TODO
+    } else {
+        // Try to read plain path from dict
+        bool in_map = hashmap_get(self->plain_routes, path, path_size,
+                                  (uintptr_t*)&cur_node);
+
+        // If not read, then add
+        if (!in_map) {
+            cur_node = (RouteMap_Tree*)PyMem_Malloc(sizeof(RouteMap_Tree));
+            hashmap_set(self->plain_routes, path, path_size,
+                        (uintptr_t)cur_node);
+        }
+    }
+
+    // TODO configure node
+    // RouteMap__configure_node(route, cur_node, app);
+    return cur_node;
+}
+
+/*
+ * RouteMap.add_routes(self, routes: Collection[BaseRoute], app: "Starlite");
+ *
+ * Add routes to the RouteMap.
+ */
+static PyObject*
+RouteMap_add_routes(RouteMap* self, PyObject* args, PyObject* kwds)
+{
+    PyObject* routes;
+    PyObject* app;
+    static char* kwlist[] = {"routes", "app", NULL};
+
+    // Parse args
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO", kwlist, &routes, &app))
+        return NULL;
+
+    // Check types of args
+    if (app == NULL ||
+        !PyObject_HasAttrString(app, "build_route_middleware_stack")) {
+        PyErr_SetString(PyExc_TypeError, "App must be a starlite instance.");
+        return NULL;
+    }
+
+    PyObject* routes_iter = PyObject_GetIter(routes);
+    if (routes == NULL || routes_iter == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Routes must be an iterable.");
+        return NULL;
+    }
+
+    PyObject* route;
+    while ((route = PyIter_Next(routes_iter))) {
+        RouteMap_Tree* node = RouteMap__add_node(self, route, app);
+        Py_DECREF(route);
+
+        if (node == NULL)
+            break;
+    }
+    Py_DECREF(routes_iter);
+
+    if (PyErr_Occurred())
+        return NULL;
+    Py_RETURN_NONE;
+}
 
 /*
  * RouteMap.__del__();
@@ -140,6 +267,26 @@ RouteMap_dealloc(RouteMap* self)
     /* Free type object. */
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
+
+/*
+ * RouteMap method definition. table
+ */
+static PyMethodDef RouteMap_methods[] = {
+    {"add_routes", (PyCFunctionWithKeywords)RouteMap_add_routes,
+     METH_VARARGS | METH_KEYWORDS,
+     PyDoc_STR("RouteMap.add_routes(self, routes: Collection[BaseRoute], "
+               "app: Starlite)\n\n"
+               "Adds a new route path (e.g. '/foo/bar/{param:int}') into "
+               "the route_map tree.\n\n"
+               "Inserts non-parameter paths ('plain routes') off the "
+               "tree's root node.\n"
+               "For paths containing parameters, splits the path on '/' "
+               "and nests each path.\n"
+               "segment under the previous segment's node (see prefix tree "
+               "/ trie).")},
+    {NULL}, /* Sentinel */
+};
+
 /*
  * RouteMap type defintion
  */
@@ -154,6 +301,7 @@ static PyTypeObject RouteMapType = {
     .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_new = RouteMap_new,
     .tp_dealloc = (destructor)RouteMap_dealloc,
+    .tp_methods = RouteMap_methods,
 };
 
 /* ------------------------ Module Definition ------------------------------ */
