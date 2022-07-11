@@ -1,21 +1,54 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#include <stdbool.h>
+
+#include "_hashmap.h"
+
+/* --------------------------- Definitions --------------------------------- */
+
+#define HASHSET_VALUE 0
+
 /* -------------------------- Custom Types --------------------------------- */
+
+/*
+ * Data for the leaves (routes) of the trie.
+ */
+typedef struct RouteMap_LeafData {
+    PyObject* path_parameters;
+    PyObject* asgi_handlers;
+    bool is_asgi;
+    char* static_path;
+} RouteMap_LeafData;
+
+/*
+ * The actual trie.
+ */
+typedef struct RouteMap_Tree {
+    hashmap* children; // dict[str, RouteMap_Tree]
+    RouteMap_LeafData* data;
+} RouteMap_Tree;
 
 /*
  * class RouteMap():
  */
+/* clang-format off */
 typedef struct RouteMap {
     PyObject_HEAD
+    hashset* static_paths;
+    /* clang-format on */
+    hashmap* plain_routes; // dict[str, RouteMap_Tree]
+    RouteMap_Tree* tree;
 } RouteMap;
 
 /*
- * Type defintion
+ * RouteMap type defintion
  */
+/* clang-format off */
 static PyTypeObject RouteMapType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "starlite.routing._route_map.RouteMap",
+    /* clang-format on */
     .tp_doc = PyDoc_STR("Native Starlite RouteMap"),
     .tp_basicsize = sizeof(RouteMap),
     .tp_itemsize = 0,
