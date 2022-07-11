@@ -99,7 +99,8 @@ hashset_add(hashset* set, void* key, size_t ksize)
     hashmap_set(set, key, ksize, 0);
 }
 
-inline void hashset_contains(hashset* set, void* key, size_t ksize)
+inline bool
+hashset_contains(hashset* set, void* key, size_t ksize)
 {
     uintptr_t temp;
     return hashmap_get(set, key, ksize, &temp);
