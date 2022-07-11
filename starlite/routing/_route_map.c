@@ -21,15 +21,15 @@
 static char*
 strdup_p(const char* src)
 {
-    char* dest;
+    size_t len = strlen(src) + 1; /* Null terminator */
 
-    dest = PyMem_Malloc(strlen(src) * sizeof(char));
+    /* Allocate dest pointer. */
+    char* dest = PyMem_Malloc(len);
     if (dest == NULL)
         return (char*)PyErr_NoMemory(); /* Always returns NULL */
 
     /* Copy string */
-    while ((*dest++ = *src++) != '\0')
-        ;
+    memcpy(dest, src, len);
 
     return dest;
 }
