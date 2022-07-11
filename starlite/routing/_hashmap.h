@@ -55,6 +55,13 @@ void hashmap_set_free(hashmap* map, void* key, size_t ksize, uintptr_t value,
 
 bool hashmap_get(hashmap* map, void* key, size_t ksize, uintptr_t* out_val);
 
+inline bool
+hashmap_contains(hashmap* map, void* key, size_t ksize)
+{
+    uintptr_t temp;
+    return hashmap_get(map, key, ksize, &temp);
+}
+
 #ifdef __HASHMAP_REMOVABLE
 void hashmap_remove(hashmap* map, void* key, size_t ksize);
 
@@ -102,8 +109,7 @@ hashset_add(hashset* set, void* key, size_t ksize)
 inline bool
 hashset_contains(hashset* set, void* key, size_t ksize)
 {
-    uintptr_t temp;
-    return hashmap_get(set, key, ksize, &temp);
+    return hashmap_contains(set, key, ksize);
 }
 
 #endif // _hashmap_h
